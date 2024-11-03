@@ -65,6 +65,9 @@ class ImagePartBasedEngine(Engine):
         save_model_flag=False,
         mask_filtering_training=False,
         mask_filtering_testing=False,
+        reid_weight=1,
+        team_weight=0.1,
+        role_weight=1.5,
     ):
         super(ImagePartBasedEngine, self).__init__(
             config,
@@ -105,6 +108,11 @@ class ImagePartBasedEngine(Engine):
             writer=self.writer,
             use_gpu=self.use_gpu,
         )
+        
+        # multi-task objective
+        self.reid_weight = reid_weight
+        self.team_weight = team_weight
+        self.role_weight = role_weight
 
         self.role_loss = FocalLoss()
         # self.role_loss = CrossEntropyLoss(label_smooth=True)
@@ -202,7 +210,7 @@ class ImagePartBasedEngine(Engine):
             embeddings_dict, visibility_scores_dict, team_cls_scores_dict, teams[:24], 1)
 
         #################### multi-task objective ##################
-        loss = reid_loss + 0.1 * team_loss + 1.5 * role_loss
+        loss = self.reid_weight * reid_loss + self.team_weight * team_loss + self.role_weight * role_loss
         ############################################################
 
         # 2. Part prediction objective:

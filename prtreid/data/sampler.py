@@ -118,7 +118,7 @@ class PrtreidSampler(Sampler):
             self.index_dic[sample['pid']].append(index)
             if sample['video_id'] not in self.game_dic.keys():
                 self.game_dic[sample['video_id']] = {'left': defaultdict(list), 'right': defaultdict(list), 'other': defaultdict(list)}
-            if self.column_mapping['role'][sample['role']] == 'player':  # goalkeeper not part of team classification
+            if self.column_mapping['role'][sample['role']] in ['player']:  # goalkeeper not part of team classification
                 team = self.column_mapping['team'][sample['team']]
                 self.game_dic[sample['video_id']][team][sample['pid']].append(index)
             else:
@@ -126,6 +126,24 @@ class PrtreidSampler(Sampler):
 
         self.pids = list(self.index_dic.keys())
         self.gids = list(self.game_dic.keys())
+
+        # validate each game has at least 3 players from each team and 2 other players
+        deleted_games = []
+        for game in self.gids:
+            if len(self.game_dic[game]['left'].keys()) < 3:
+                del self.game_dic[game]
+                deleted_games.append({game: 'left'})
+                continue
+            if len(self.game_dic[game]['right'].keys()) < 3:
+                del self.game_dic[game]
+                deleted_games.append({game: 'right'})
+                continue
+            if len(self.game_dic[game]['other'].keys()) < 2:
+                del self.game_dic[game]
+                deleted_games.append({game: 'other'})
+                continue
+        print('Deleted games: ', deleted_games)
+        print("Rate of deleted games: ", len(deleted_games)/len(self.game_dic.keys()))
 
         # estimate number of examples in an epoch
         self.length = 0
@@ -159,15 +177,21 @@ class PrtreidSampler(Sampler):
 
         while len(avai_gids) > 0:
             selected_game = random.sample(avai_gids, 1)[0]
-            ################### from left side ############################
-            avai_pids = copy.deepcopy([i for i in batch_games_dic[selected_game]['left'].keys()])
-            selected_pids = random.sample(avai_pids, 3)
-            ################### from right side ###########################
-            avai_pids = copy.deepcopy([i for i in batch_games_dic[selected_game]['right'].keys()])
-            selected_pids += random.sample(avai_pids, 3)
-            ################## from other roles ###########################
-            avai_pids = copy.deepcopy([i for i in batch_games_dic[selected_game]['other'].keys()])
-            selected_pids += random.sample(avai_pids, 2)
+            try:
+                ################### from left side ############################
+                avai_pids = copy.deepcopy([i for i in batch_games_dic[selected_game]['left'].keys()])
+                selected_pids = random.sample(avai_pids, 3)
+                ################### from right side ###########################
+                avai_pids = copy.deepcopy([i for i in batch_games_dic[selected_game]['right'].keys()])
+                selected_pids += random.sample(avai_pids, 3)
+                ################## from other roles ###########################
+                avai_pids = copy.deepcopy([i for i in batch_games_dic[selected_game]['other'].keys()])
+                selected_pids += random.sample(avai_pids, 2)
+            except Exception as e:
+                #print('Error in game: ', selected_game)
+                #print('Error: ', e)
+                avai_gids.remove(selected_game)
+                continue
 
             for pid in selected_pids:
                 batch_idxs = batch_idxs_dict[pid].pop(0)

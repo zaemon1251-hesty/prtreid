@@ -153,14 +153,17 @@ class PartAveragedTripletLoss(nn.Module):
         # Hardest negative/positive with dist=float.max/-1 are invalid: no valid negative/positive found for this anchor
         # Do not generate triplet for such anchor
         valid_hardest_positive_dist_mask = hardest_positive_dist != -1
-        valid_hardest_negative_dist_mask = hardest_negative_dist != max_value
+        valid_hardest_negative_dist_mask = torch.ones(hardest_negative_dist.shape, dtype=torch.bool, device=labels.get_device()) # hardest_negative_dist != max_value
         valid_triplets_mask = valid_hardest_positive_dist_mask * valid_hardest_negative_dist_mask  # [K, N]
         hardest_dist = torch.stack([hardest_positive_dist, hardest_negative_dist], 2)  # [K, N, 2]
         valid_hardest_dist = hardest_dist[valid_triplets_mask, :]  # [K*N, 2]
 
         if valid_hardest_dist.nelement() == 0:
-            warnings.warn("CRITICAL WARNING: no valid triplets were generated for current batch")
-            return None
+            raise ValueError(
+                "CRITICAL WARNING: no valid triplets were generated for current batch"
+                f" (valid_triplets_mask={valid_triplets_mask.sum()}, valid_hardest_positive_dist_mask={valid_hardest_positive_dist_mask.sum()}, valid_hardest_negative_dist_mask={valid_hardest_negative_dist_mask.sum()})"
+                f" (hardest_positive_dist_non_valid={hardest_positive_dist[hardest_positive_dist == -1].nelement()}, hardest_negative_dist_non_valid={hardest_negative_dist[hardest_negative_dist == max_value].nelement()})"
+            )
 
         # Build valid triplets and compute triplet loss
         if self.margin > 0:

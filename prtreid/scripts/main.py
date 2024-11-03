@@ -72,7 +72,10 @@ def build_engine(cfg, datamanager, model, optimizer, scheduler, writer, engine_s
                 dist_combine_strat=cfg.test.part_based.dist_combine_strat,
                 batch_size_pairwise_dist_matrix=cfg.test.batch_size_pairwise_dist_matrix,
                 mask_filtering_training=cfg.model.bpbreid.mask_filtering_training,
-                mask_filtering_testing=cfg.model.bpbreid.mask_filtering_testing
+                mask_filtering_testing=cfg.model.bpbreid.mask_filtering_testing,
+                reid_weight=cfg.loss.part_based.reid_weight,
+                team_weight=cfg.loss.part_based.team_weight,
+                role_weight=cfg.loss.part_based.role_weight,
             )
 
     else:
