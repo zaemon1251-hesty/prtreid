@@ -182,6 +182,10 @@ def get_default_config():
     cfg.loss.triplet.margin = 0.3 # distance margin
     cfg.loss.triplet.weight_t = 1. # weight to balance hard triplet loss
     cfg.loss.triplet.weight_x = 0. # weight to balance cross entropy loss
+    
+    cfg.loss.part_based.reid_weight = 1.0
+    cfg.loss.part_based.team_weight = 0.1
+    cfg.loss.part_based.role_weight = 1.5
 
     # test
     cfg.test = CN()
