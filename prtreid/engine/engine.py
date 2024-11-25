@@ -226,6 +226,16 @@ class Engine(object):
                 )
                 self.save_model(epoch, rank_1, mAP, ssmd, save_dir)
 
+            # トレーニングデータの評価を追加
+            if epoch % 5 == 0:  # 評価頻度を調整可能
+                print(f"=> Evaluating training data at epoch {epoch}")
+                cmc, mAP, ssmd = self.test(
+                    epoch,
+                    dist_metric=dist_metric,
+                    normalize_feature=normalize_feature,
+                    evalate_on_training_data=True  # トレーニングデータ用フラグを有効化
+                )
+
         self.engine_state.training_completed()
 
         if self.engine_state.max_epoch > 0:
@@ -293,7 +303,8 @@ class Engine(object):
         ranks=[1, 5, 10, 20],
         rerank=False,
         save_features=False,
-        evalate_on_sources_only=False
+        evalate_on_sources_only=False,
+        evalate_on_training_data=False  # 新しいフラグ
     ):
         """Tests model on target datasets.
 
@@ -309,6 +320,37 @@ class Engine(object):
             but not a must. Please refer to the source code for more details.
         """
         self.writer.test_timer.start()
+        
+        self.set_model_mode('eval')
+        if evalate_on_training_data:
+            print('##### Evaluating Training Data #####')
+            targets = list(self.train_loader.keys())
+            for name in targets:
+                # トレーニングデータ用のクエリ・ギャラリー
+                query_loader = self.train_loader[name]['query']
+                gallery_loader = self.train_loader[name]['gallery']
+                cmc, mAP, ssmd, avg_pxl_pred_accuracy = self._evaluate(
+                    epoch,
+                    dataset_name="training_data",
+                    query_loader=query_loader,
+                    gallery_loader=gallery_loader,
+                    dist_metric=dist_metric,
+                    normalize_feature=normalize_feature,
+                    visrank=visrank,
+                    visrank_topk=visrank_topk,
+                    visrank_q_idx_list=visrank_q_idx_list,
+                    visrank_count=visrank_count,
+                    save_dir=save_dir,
+                    use_metric_cuhk03=use_metric_cuhk03,
+                    ranks=ranks,
+                    rerank=rerank,
+                    save_features=save_features
+                )
+                print("##### Training Data Evaluation Results #####")
+                print(f"mAP: {mAP:.2%}")
+                for rank in ranks:
+                    print(f"Rank-{rank:<3}: {cmc[rank-1]:.2%}")
+            return cmc, mAP, ssmd
 
         self.set_model_mode('eval')
         targets = list(self.test_loader.keys())

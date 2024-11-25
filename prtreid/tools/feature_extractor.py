@@ -101,10 +101,11 @@ class FeatureExtractor(object):
             load_pretrained_weights(model, model_path)
 
         # Build transform functions
+        transforms = cfg.data.transforms if "transforms" in cfg.data else None
         _, preprocess = build_transforms(image_size[0],
                                          image_size[1],
                                          cfg,
-                                         transforms=None,
+                                         transforms=transforms,
                                          norm_mean=pixel_mean,
                                          norm_std=pixel_std,
                                          masks_preprocess=cfg.model.bpbreid.masks.preprocess,

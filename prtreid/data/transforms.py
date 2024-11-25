@@ -4,7 +4,7 @@ import cv2
 import torch
 import numpy as np
 from albumentations import (
-    Resize, Compose, Normalize, ColorJitter, HorizontalFlip, CoarseDropout, RandomCrop, PadIfNeeded
+    Resize, Compose, Normalize, ColorJitter, HorizontalFlip, CoarseDropout, RandomCrop, PadIfNeeded, ToGray, Downscale
 )
 from albumentations.pytorch import ToTensorV2
 from prtreid.data.masks_transforms import masks_preprocess_all, AddBackgroundMask, ResizeMasks, PermuteMasksDim, \
@@ -105,6 +105,11 @@ def build_transforms(
                         p=config.data.cj.p,
                         )
         ]
+    if "gray" in transforms:
+        transform_tr += [ToGray()]
+    
+    if "downscale" in transforms:
+        transform_tr += [Downscale(scale_min=0.5, scale_max=0.8, p=1)]
 
     print('+ normalization (mean={}, std={})'.format(norm_mean, norm_std))
     transform_tr += [normalize]

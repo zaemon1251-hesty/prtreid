@@ -130,6 +130,7 @@ class PrtreidSampler(Sampler):
         # validate each game has at least 3 players from each team and 2 other players
         deleted_games = []
         for game in self.gids:
+            # self.game_dic[game]['left'].keys() -> number of player_id
             if len(self.game_dic[game]['left'].keys()) < 3:
                 del self.game_dic[game]
                 deleted_games.append({game: 'left'})
